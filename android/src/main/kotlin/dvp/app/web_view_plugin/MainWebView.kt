@@ -12,23 +12,31 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import io.flutter.plugin.common.MethodChannel
 
 /**
  * @author dvphu on 09,November,2020
  */
 
 class MainWebView(context: Context) : WebView(context) {
+    private var method: MethodChannel? = null
 
     init {
         initView(context)
     }
 
+    fun setMethodChannel(method: MethodChannel?) {
+        this.method = method
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun initView(context: Context) {
-        this.settings.javaScriptEnabled = true
-        this.settings.useWideViewPort = true
-        this.settings.loadWithOverviewMode = true
-        this.settings.domStorageEnabled = true
+        settings.apply {
+            javaScriptEnabled = true
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            domStorageEnabled = true
+        }
         webChromeClient = CustomChromeClient(context)
         webViewClient = CustomWebClient()
     }
@@ -40,6 +48,18 @@ class MainWebView(context: Context) : WebView(context) {
             }
             return super.shouldOverrideUrlLoading(view, request)
         }
+
+        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            super.onPageStarted(view, url, favicon)
+            method?.invokeMethod("onPageStarted", url)
+        }
+
+        override fun onPageFinished(view: WebView?, url: String?) {
+            super.onPageFinished(view, url)
+            method?.invokeMethod("onPageFinished", url)
+        }
+
+
     }
 
     inner class CustomChromeClient internal constructor(private val context: Context) : WebChromeClient() {
@@ -47,6 +67,7 @@ class MainWebView(context: Context) : WebView(context) {
         private var mCustomViewCallback: CustomViewCallback? = null
         private var mOriginalSystemUiVisibility = 0
         private var orientation = resources.configuration.orientation
+
         override fun getDefaultVideoPoster(): Bitmap? {
             return if (mCustomView == null) {
                 null
@@ -83,8 +104,7 @@ class MainWebView(context: Context) : WebView(context) {
 
         override fun onProgressChanged(view: WebView?, newProgress: Int) {
             super.onProgressChanged(view, newProgress)
-            Log.d("WebView", "loading progress $newProgress")
+            method?.invokeMethod("onProgressChanged", newProgress)
         }
-
     }
 }

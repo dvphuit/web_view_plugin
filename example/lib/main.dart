@@ -20,7 +20,18 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('WebView Plugin'),
         ),
-        body: WebViewPlugin(),
+        body: WebViewPlugin(
+          url: "https://www.youtube.com",
+          onPageStarted: (url){
+            print('on page started $url');
+          },
+          onPageFinished: (url){
+            print('on page finished $url');
+          },
+          onProgressChanged: (progress){
+            print('loading progress $progress');
+          },
+        ),
       ),
     );
   }

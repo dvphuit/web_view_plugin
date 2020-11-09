@@ -1,6 +1,7 @@
 package dvp.app.web_view_plugin
 
 import android.content.Context
+import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -21,11 +22,13 @@ internal class NativeView(
 
 
     init {
-        view = MainWebView(context)
         channel = MethodChannel(binding.binaryMessenger, "web_view_plugin/method_channel").apply {
             setMethodCallHandler(this@NativeView)
         }
-        view?.loadUrl(args["initUrl"] as String)
+        view = MainWebView(context).apply {
+            setMethodChannel(channel)
+            loadUrl(args["initUrl"] as String)
+        }
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -34,6 +37,7 @@ internal class NativeView(
         } else {
             result.notImplemented()
         }
+
     }
 
     override fun dispose() {

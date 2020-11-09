@@ -6,20 +6,52 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+const MethodChannel _method = const MethodChannel('web_view_plugin/method_channel');
+
+typedef OnPageStarted = void Function(String url);
+typedef OnPageFinished = void Function(String url);
+typedef OnProgressChanged = void Function(int progress);
+
 class WebViewPlugin extends StatelessWidget {
-  final MethodChannel _channel = const MethodChannel('web_view_plugin/method_channel');
+  WebViewPlugin({
+    Key key,
+    @required this.url,
+    this.onPageStarted,
+    this.onPageFinished,
+    this.onProgressChanged,
+  });
+
+  final String url;
+  final OnPageStarted onPageStarted;
+  final OnPageFinished onPageFinished;
+  final OnProgressChanged onProgressChanged;
   final Map<String, dynamic> args = <String, dynamic>{};
 
-  Future<String> get platformVersion async {
-    final String version = await _channel.invokeMethod('getPlatformVersion');
-    return version;
+  void _init() {
+    args.putIfAbsent("initUrl", () => url);
+    _method.setMethodCallHandler(_nativeMethodCallHandler);
+  }
+
+  Future<dynamic> _nativeMethodCallHandler(MethodCall call) async {
+    switch (call.method) {
+      case "onPageStarted":
+        onPageStarted.call(call.arguments as String);
+        break;
+      case "onPageFinished":
+        onPageFinished.call(call.arguments as String);
+        break;
+      case "onProgressChanged":
+        onProgressChanged.call(call.arguments as int);
+        break;
+      default:
+        return "Nothing";
+        break;
+    }
   }
 
   Widget build(BuildContext context) {
     final String viewType = 'web_view_plugin';
-
-    // Pass parameters to the platform side.
-    args.putIfAbsent("initUrl", () => "https://www.youtube.com");
+    _init();
 
     return PlatformViewLink(
       viewType: viewType,
@@ -36,11 +68,9 @@ class WebViewPlugin extends StatelessWidget {
           viewType: viewType,
           layoutDirection: TextDirection.ltr,
           creationParams: args,
-          creationParamsCodec: StandardMessageCodec(),
+          creationParamsCodec: const StandardMessageCodec(),
         )
-          ..addOnPlatformViewCreatedListener((id) {
-            print("platform version: $platformVersion");
-          })
+          ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
           ..create();
       },
     );
