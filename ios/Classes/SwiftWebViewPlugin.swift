@@ -1,14 +1,15 @@
-import Flutter
-import UIKit
+//
+// Created by Fudesu on 11/9/20.
+//
+
+import Foundation
+import  Flutter
 
 public class SwiftWebViewPlugin: NSObject, FlutterPlugin {
-  public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "web_view_plugin", binaryMessenger: registrar.messenger())
-    let instance = SwiftWebViewPlugin()
-    registrar.addMethodCallDelegate(instance, channel: channel)
-  }
 
-  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    result("iOS " + UIDevice.current.systemVersion)
-  }
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        let factory = NativeViewFactory(registrar: registrar)
+        registrar.register(factory, withId: "web_view_plugin")
+    }
 }
+

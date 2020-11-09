@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -56,11 +57,20 @@ class WebViewPlugin extends StatelessWidget {
     return PlatformViewLink(
       viewType: viewType,
       surfaceFactory: (BuildContext context, PlatformViewController controller) {
-        return AndroidViewSurface(
-          controller: controller,
-          gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
-          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-        );
+        if (Platform.isAndroid) {
+          return AndroidViewSurface(
+            controller: controller,
+            gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+          );
+        } else {
+          return UiKitView(
+            viewType: viewType,
+            layoutDirection: TextDirection.ltr,
+            creationParams: args,
+            creationParamsCodec: const StandardMessageCodec(),
+          );
+        }
       },
       onCreatePlatformView: (PlatformViewCreationParams params) {
         return PlatformViewsService.initSurfaceAndroidView(
