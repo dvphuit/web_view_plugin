@@ -18,20 +18,24 @@ class NativeView: FlutterMethodCallDelegate, FlutterPlatformView {
 
         self.registrar = registrar
         self.viewId = viewId
-
-        channel = FlutterMethodChannel(name: "web_view_plugin/method_channel", binaryMessenger: registrar.messenger())
+        var channelName = ""
+        if let id = viewId as? Int64 {
+            channelName = "web_view_plugin/method_channel/" + String(id)
+        } else if let id = viewId as? String {
+            channelName = "web_view_plugin/method_channel/" + id
+        }
+        
+        channel = FlutterMethodChannel(name: channelName, binaryMessenger: registrar.messenger())
         channel!.setMethodCallHandler(LeakAvoider(delegate: self).handle)
-
-        let initialUrl = args["initUrl"] as! String?
-        let url = initialUrl ?? "about:blank"
 
         let configuration = WKWebViewConfiguration()
 
         if #available(iOS 14.0, *) {
-//            configuration.limitsNavigationsToAppBoundDomains = true
-//            let preferences = WKWebpagePreferences()
-//            preferences.allowsContentJavaScript = true
-//            configuration.defaultWebpagePreferences = preferences
+            configuration.limitsNavigationsToAppBoundDomains = true
+            let preferences = WKWebpagePreferences()
+            preferences.allowsContentJavaScript = true
+            configuration.defaultWebpagePreferences = preferences
+            configuration.allowsInlineMediaPlayback = true
         } else {
             let preferences = WKPreferences()
             preferences.javaScriptEnabled = true
@@ -39,14 +43,25 @@ class NativeView: FlutterMethodCallDelegate, FlutterPlatformView {
             configuration.allowsInlineMediaPlayback = true
         }
 
-        let request = URLRequest(url: URL(string: url)!)
 
         webView = MainWebView(frame: CGRect.zero, configuration: configuration, channel: channel)
-
+        webView?.isOpaque = false
+        webView?.backgroundColor = UIColor.clear
         webView?.cleanAllCookies()
         webView?.refreshCookies()
-
-        webView?.load(request)
+        
+        
+        let htmlData = args["htmlData"] as? String ?? ""
+        if (!htmlData.isEmpty){
+            webView?.loadHTMLString(htmlData, baseURL: nil)
+        }
+        
+        let initialUrl = args["initUrl"] as? String ?? ""
+        if (!initialUrl.isEmpty){
+            let request = URLRequest(url: URL(string: initialUrl)!)
+            webView?.load(request)
+        }
+       
     }
 
     public func view() -> UIView {
@@ -57,7 +72,7 @@ class NativeView: FlutterMethodCallDelegate, FlutterPlatformView {
         let arguments = call.arguments as? NSDictionary
         switch call.method {
         case "evaluateJavascript":
-            let source = (arguments!["source"] as? String)!
+            let source = (arguments!["script"] as? String)!
             webView?.evaluateJavaScript(source, flutterResult: result)
             break
         default:

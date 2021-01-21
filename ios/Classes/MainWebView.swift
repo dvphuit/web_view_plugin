@@ -5,7 +5,7 @@
 import Flutter
 import WebKit
 
-public class MainWebView : WKWebView, WKNavigationDelegate {
+public class MainWebView : WKWebView, WKUIDelegate, WKNavigationDelegate {
 
     var channel: FlutterMethodChannel?
 
@@ -13,6 +13,7 @@ public class MainWebView : WKWebView, WKNavigationDelegate {
         super.init(frame: frame, configuration: configuration)
         self.channel = channel
         navigationDelegate = self
+        uiDelegate = self
     }
 
     required init?(coder: NSCoder) {
@@ -20,12 +21,10 @@ public class MainWebView : WKWebView, WKNavigationDelegate {
     }
 
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        print("page finished")
         channel?.invokeMethod("onPageFinished", arguments: nil)
     }
 
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-        print("page started")
         channel?.invokeMethod("onPageStarted", arguments: nil)
     }
 
@@ -37,12 +36,12 @@ public class MainWebView : WKWebView, WKNavigationDelegate {
 
     public func evaluateJavaScript(_ javaScriptString: String, flutterResult: FlutterResult?) {
         if #available(iOS 14.0, *) {
-//            let wkContentWorld = WKContentWorld.defaultClient
+            let wkContentWorld = WKContentWorld.defaultClient
+            
 //            evaluateJavaScript(javaScriptString, in: nil, in: wkContentWorld, completionHandler: { result in
 //                if flutterResult == nil {
 //                    return
 //                }
-//
 //                switch result {
 //                    case .success(let message):
 //                        flutterResult?(message)
@@ -50,22 +49,48 @@ public class MainWebView : WKWebView, WKNavigationDelegate {
 //                        return
 //                }
 //            })
+            
+            evaluateJavaScript(javaScriptString, in: nil, in: wkContentWorld, completionHandler: nil)
+            
         } else {
-            evaluateJavaScript(javaScriptString, completionHandler: {(value, error) in
-                if flutterResult == nil {
-                    return
-                }
-
-                if value == nil {
-                    flutterResult!(nil)
-                    return
-                }
-
-                flutterResult!(value)
-            })
+            evaluateJavaScript(javaScriptString, completionHandler: nil)
+//            evaluateJavaScript(javaScriptString, completionHandler: {(value, error) in
+//                if flutterResult == nil {
+//                    return
+//                }
+//
+//                if value == nil {
+//                    flutterResult!(nil)
+//                    return
+//                }
+//
+//                flutterResult!(value)
+//            })
         }
 
     }
+    
+    public func webView(_ webView: WKWebView,
+                     runJavaScriptAlertPanelWithMessage message: String,
+                     initiatedByFrame frame: WKFrameInfo,
+                     completionHandler: @escaping () -> Void) {
+            
+            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            let title = NSLocalizedString("OK", comment: "OK Button")
+            let ok = UIAlertAction(title: title, style: .default) { (action: UIAlertAction) -> Void in
+                alert.dismiss(animated: true, completion: nil)
+            }
+            alert.addAction(ok)
+            webView.window?.rootViewController?.present(alert, animated: true)
+            completionHandler()
+        }
+        
+    public func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+            if navigationAction.targetFrame == nil {
+                webView.load(navigationAction.request)
+            }
+            return nil
+        }
 }
 
 extension WKWebView {

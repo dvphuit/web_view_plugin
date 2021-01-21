@@ -27,7 +27,14 @@ internal class NativeView(
         }
         view = MainWebView(context).apply {
             setMethodChannel(channel)
-            loadUrl(args["initUrl"] as String)
+            
+            (args["htmlData"] as String?)?.let {
+                loadData(it, "text/html", "UTF-8")
+            }
+
+            (args["initUrl"] as String?)?.let {
+                loadUrl(it)
+            }
         }
     }
 
